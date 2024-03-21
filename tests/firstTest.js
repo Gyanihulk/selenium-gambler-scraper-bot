@@ -70,19 +70,22 @@ async function monitorPercentages() {
     let endTime;
 
     // Periodically check for the pulse class to determine start and end of countdown
+    // Periodically check for the pulse class to determine start and end of countdown
     setInterval(async () => {
       const hasPulseClass = await checkPulseClass();
       if (hasPulseClass && !countdownStarted) {
         // Countdown has started
         countdownStarted = true;
-        startTime = new Date();
+        startTime = new Date(new Date() - 1000); // Adjust start time to 1 second earlier
         console.log("Countdown started");
       } else if (countdownStarted) {
         // While countdown is active, log the remaining time
         const currentTime = new Date();
-        const elapsedSeconds = (currentTime - startTime) / 100 + 1;
+        const elapsedSeconds = (currentTime - startTime) / 1000;
+        // Check if we need to adjust the first second display
+        const adjustedElapsedSeconds = elapsedSeconds < 1 ? 1 : elapsedSeconds;
         console.log(
-          `Countdown in progress. Time elapsed: ${elapsedSeconds.toFixed(
+          `Countdown in progress. Time elapsed: ${adjustedElapsedSeconds.toFixed(
             2
           )} seconds.`
         );
@@ -93,8 +96,11 @@ async function monitorPercentages() {
         countdownStarted = false;
         endTime = new Date();
         const duration = (endTime - startTime) / 1000; // Calculate duration in seconds
+        const adjustedDuration = duration < 12 ? 12 : duration; // Ensure at least 12 seconds
         console.log(
-          `Countdown ended. Duration was ${duration.toFixed(2)} seconds.`
+          `Countdown ended. Duration was ${adjustedDuration.toFixed(
+            2
+          )} seconds.`
         );
       }
     }, 1000);
@@ -202,23 +208,54 @@ async function monitorPercentages() {
     // ... existing code ...
 
     // Check for the "BANKER" information
+    const getCurrentTimeString = () => {
+      return new Date().toLocaleTimeString(); // You can adjust the format as needed
+    };
+    
+    // Periodically check for the banker information and dice results
     setInterval(async () => {
+      const currentTime = getCurrentTimeString();
       const bankerInfo = await getBankerInfo(); // Make sure you have this function defined to get bet stats for BANKER
       const bankerDiceResults = await getBankerDiceResults();
-
+    
       if (bankerInfo?.bankerAmount) {
-        console.log("Banker bet information:", bankerInfo);
+        console.log(`${currentTime} - Banker bet information:`, bankerInfo);
       }
-
+    
       if (bankerDiceResults) {
         console.log(
-          "Banker dice results:",
+          `${currentTime} - Banker dice results:`,
           bankerDiceResults.diceResults,
           "Total result:",
           bankerDiceResults.totalResult
         );
       }
     }, 1000);
+
+    const checkWinningResult = async (driver) => {
+      const script = `
+        const playerWinningDiv = document.querySelector('.winning--2bea3.player--a0c1a');
+        const bankerWinningDiv = document.querySelector('.winning--2bea3.banker--f4570');
+        if (playerWinningDiv) {
+          return 'player';
+        } else if (bankerWinningDiv) {
+          return 'banker';
+        }
+        return 'none';
+      `;
+    
+      return await driver.executeScript(script);
+    };
+    
+    // Usage within an interval to periodically check for the winning result
+    setInterval(async () => {
+      const winningResult = await checkWinningResult(driver);
+      if (winningResult === 'player') {
+        console.log("Player wins");
+      } else if (winningResult === 'banker') {
+        console.log("Banker wins");
+      } 
+    }, 100); 
   } catch (error) {
     console.error("Error :", error);
   } finally {
