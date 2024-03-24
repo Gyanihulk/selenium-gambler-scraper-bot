@@ -10,10 +10,17 @@
 2. **Add env **
 
    ```bash
-   use env.example
+   use env.example adn add telegram bot api key 
  bash```
 
 3. **Install dependencies**
+
+   ```bash
+   npm install or yarn 
+  bash```
+
+
+4. **RUN script**
 
    ```bash
    node gamblerbot
