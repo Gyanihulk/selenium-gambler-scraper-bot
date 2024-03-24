@@ -1,5 +1,5 @@
+const { sendMessage } = require("./lib/telegram");
 const { Builder, By, until } = require("selenium-webdriver");
-const { sendMessage } = require("../lib/telegram");
 
 async function monitorPercentages() {
   let driver = await new Builder().forBrowser("chrome").build();
@@ -26,7 +26,7 @@ async function monitorPercentages() {
     const loginSubmitButton = By.css("button.red.submit");
     await driver.wait(until.elementLocated(loginSubmitButton), 10000);
     await driver.findElement(loginSubmitButton).click();
-    console.log("Login .");
+    console.log("Attempting Login");
     // Wait for successful login by checking for a logout button, profile link, or similar element
     const logoutButton = By.css(".wallet-dropdown"); // Replace with the actual selector for the logout button or profile link
     await driver.wait(until.elementLocated(logoutButton), 10000);
@@ -65,10 +65,6 @@ async function monitorPercentages() {
 
       return await driver.executeScript(script);
     };
-
-    let countdownStarted = false;
-    let startTime;
-    let endTime;
 
     const getPlayerDiceResults = async () => {
       const script = `
@@ -159,203 +155,226 @@ async function monitorPercentages() {
       return new Date().toLocaleTimeString(); // You can adjust the format as needed
     };
 
+    let lastWinner = null;
+
     const checkWinningResult = async (driver) => {
       const script = `
-        const playerWinningDiv = document.querySelector('.winning--2bea3.player--a0c1a');
-        const bankerWinningDiv = document.querySelector('.winning--2bea3.banker--f4570');
-        if (playerWinningDiv) {
-          return 'player';
-        } else if (bankerWinningDiv) {
-          return 'banker';
-        }
-        return 'none';
-      `;
+    const playerWinningDiv = document.querySelector('.winning--2bea3.player--a0c1a');
+    const bankerWinningDiv = document.querySelector('.winning--2bea3.banker--f4570');
+    let result = 'none';
+    if (playerWinningDiv) {
+      result = 'player';
+    } else if (bankerWinningDiv) {
+      result = 'banker';
+    }
+    return result;
+  `;
 
-      return await driver.executeScript(script);
+      const currentWinner = await driver.executeScript(script);
+
+      // Check if the result has changed since the last check
+      if (currentWinner !== lastWinner) {
+        // Update the last winner to the current winner
+        lastWinner = currentWinner;
+        // Return the new winner
+        return currentWinner;
+      }
+
+      // If the result hasn't changed, return 'none' to indicate no update
+      return "none";
     };
 
     let startMessageSent = false;
     let endMessageSent = false;
     let resultShown = false;
+    let countdownStarted = false;
+    let startTime;
 
-    // Usage within an interval to periodically check for the winning result
+    let lastBankerBetAmount = 0;
+    let lastPlayerBetAmount = 0;
+    let lastBankerPopulation = 0;
+    let lastPlayerPopulation = 0;
+    let lastBankerPercentage = 0;
+    let lastPlayerPercentage = 0;
+    let lowBetHighPopulationCounter=0;
+    let counter = 1;
+    let lastGameResult;
     setInterval(async () => {
-      const playerInfo = await getBetStatsInfoPlayer();
-      const playerDiceResults = await getPlayerDiceResults();
+      try {
+        const hasPulseClass = await checkPulseClass();
+        const playerInfo = await getBetStatsInfoPlayer();
+        const playerDiceResults = await getPlayerDiceResults();
+        const bankerInfo = await getBankerInfo(); // Make sure you have this function defined to get bet stats for BANKER
+        const bankerDiceResults = await getBankerDiceResults();
+        const winningResult = await checkWinningResult(driver);
+        let currentGameResult;
+        if (!endMessageSent && winningResult) {
+          message = "";
+    
 
-      if (playerInfo?.playerAmount) {
-        console.log("Player bet information:", playerInfo);
-      }
+          if (winningResult === "player") {
+            console.log("Player wins", playerDiceResults);
+            currentGameResult =
+              lastPlayerBetAmount > lastBankerBetAmount ? "High" : "Low";
 
-      if (playerDiceResults) {
-        console.log(
-          "Player dice results:",
-          playerDiceResults.diceResults,
-          "Total result:",
-          playerDiceResults.totalResult
-        );
-      }
+            if (lastGameResult == currentGameResult) {
+              counter++;
+            } else {
+              counter = 1;
+            }
+            if (
+              lastPlayerPopulation > lastBankerPopulation &&
+              lastPlayerBetAmount < lastBankerBetAmount
+            ) {
+              lowBetHighPopulationCounter++;
+              message += `${currentGameResult} Player ${counter} - Low Bet by High Pop`;
+            } else {
+              message += `${currentGameResult} Player ${counter}`;
+            }
+            console.log(lastGameResult, currentGameResult);
+            lastGameResult = currentGameResult;
+          } else if (winningResult === "banker") {
+            console.log("Banker wins", bankerDiceResults);
+            currentGameResult =
+              lastBankerBetAmount > lastPlayerBetAmount ? "High" : "Low";
+            if (lastGameResult == currentGameResult) {
+              counter++;
+            } else {
+              counter = 1;
+            }
+            if (
+              lastBankerPopulation > lastPlayerPopulation &&
+              lastBankerBetAmount < lastPlayerBetAmount
+            ) {
+              lowBetHighPopulationCounter++;
+              message += `${currentGameResult} Banker ${counter} - Low Bet by High Pop`;
+            } else {
+              message += `${currentGameResult} Banker ${counter}`;
+            }
+            console.log(lastGameResult, currentGameResult);
+            lastGameResult = currentGameResult;
+          } else if (
+            winningResult === "none" &&
+            playerDiceResults &&
+            bankerDiceResults &&
+            playerDiceResults?.totalResult === bankerDiceResults?.totalResult &&
+            !bankerDiceResults?.diceResults?.includes(null) &&
+            !playerDiceResults?.diceResults?.includes(null)
+          ) {
+            if (bankerDiceResults?.totalResult) {
+              counter++;
+              switch (bankerDiceResults.totalResult) {
+                case 2:
+                case 12:
+                  message += "88x TIE";
+                  break;
+                case 3:
+                case 11:
+                  message += "25x TIE";
+                  break;
+                case 4:
+                case 10:
+                  message += "10x TIE";
+                  break;
+                case 5:
+                case 9:
+                  message += "6x TIE";
+                  break;
+                case 6:
+                case 7:
+                case 8:
+                  message += "4x TIE";
+                  break;
+                default:
+                  message += bankerDiceResults.totalResult + " TIE";
+              }
+            }
+          }
 
-      const currentTime = getCurrentTimeString();
-      const bankerInfo = await getBankerInfo(); // Make sure you have this function defined to get bet stats for BANKER
-      const bankerDiceResults = await getBankerDiceResults();
+          // if(lastGameResult && currentGameResult){
+          //   console.log(lastGameResult,currentGameResult,"before updating")
+          //   lastGameResult = currentGameResult;
+          // }
 
-      // if (bankerInfo?.bankerAmount) {
-      //   console.log(`${currentTime} - Banker bet information:`, bankerInfo);
-      // }
+          const sendStatus = await sendMessage(message);
 
-      // if (bankerDiceResults) {
-      //   console.log(
-      //     `${currentTime} - Banker dice results:`,
-      //     bankerDiceResults.diceResults,
-      //     "Total result:",
-      //     bankerDiceResults.totalResult
-      //   );
-      // }
-
-      const hasPulseClass = await checkPulseClass();
-      if (hasPulseClass && !countdownStarted) {
-        // Countdown has started
-        countdownStarted = true;
-        startTime = new Date(new Date() - 1000); // Adjust start time to 1 second earlier
-        console.log("Countdown started");
-      } else if (countdownStarted) {
-        // While countdown is active, log the remaining time
-        const currentTime = new Date();
-        const elapsedSeconds = (currentTime - startTime) / 1000;
-        // Check if we need to adjust the first second display
-        const adjustedElapsedSeconds = elapsedSeconds < 1 ? 1 : elapsedSeconds;
-        console.log(
-          `Countdown in progress. Time elapsed: ${adjustedElapsedSeconds.toFixed(
-            2
-          )} seconds.`
-        );
-        if (
-          adjustedElapsedSeconds > 10 &&
-          !startMessageSent
-        ) {
-          
-          const botMessage = `
-Banker Bet: ${bankerInfo?.bankerAmount} (${bankerInfo?.bankerCoefficient})
-Players on Banker: ${bankerInfo?.bankerPlayers} (${bankerInfo?.bankerPercentage})
-
-Player Bet: ${playerInfo?.playerAmount} (${playerInfo?.playerCoefficient})
-Players on Player: ${playerInfo?.playerPlayers} (${playerInfo?.playerPercentage})
-
-Elapsed Time: ${adjustedElapsedSeconds} seconds
-Dice rolling starts!
-`;
-          sendMessage(botMessage);
-          resultShown = !resultShown;
-          startMessageSent = true;
-          endMessageSent = false;
+          startMessageSent = false;
+          endMessageSent = true;
         }
-      }
-      if (resultShown && !endMessageSent) {
-        resultShown = false; // Reset the result shown flag
-      }
-      if (!hasPulseClass && countdownStarted) {
-        // Countdown has ended
-        countdownStarted = false;
-        endTime = new Date();
-        const duration = (endTime - startTime) / 1000; // Calculate duration in seconds
-        const adjustedDuration = duration < 12 ? 12 : duration; // Ensure at least 12 seconds
-        console.log(
-          `Countdown ended. Duration was ${adjustedDuration.toFixed(
-            2
-          )} seconds.`
-        );
-      }
 
-      
-      
-setInterval(async ()=>{
-  const winningResult = await checkWinningResult(driver);
+        if (hasPulseClass && !countdownStarted) {
+          countdownStarted = true;
+          startTime = new Date();
+        }
 
-  if (
-    winningResult!=='none' &&
-    !endMessageSent && startMessageSent &&
-    !bankerDiceResults?.diceResults?.includes(null) &&
-    !playerDiceResults?.diceResults?.includes(null)
-  ) {
-    console.log(winningResult)
-    let message = "";
-    if (startMessageSent) {
-       if (winningResult === "player") {
-        message =
-          "Player wins with a total result of " +
-          playerDiceResults?.totalResult;
-      } else if (winningResult === "banker") {
-        message =
-          "Banker wins with a total result of " +
-          bankerDiceResults?.totalResult;
-      } else if (
-        playerDiceResults?.totalResult === bankerDiceResults?.totalResult
-      ) {
-        message = "It's a tie!" + playerDiceResults?.totalResult;
+        if (countdownStarted && !startMessageSent) {
+          // While countdown is active, log the remaining time
+          const elapsedSeconds = (new Date() - startTime) / 1000;
+
+          if (elapsedSeconds >= 10) {
+            // Send start game message
+
+            console.log(bankerInfo, playerInfo);
+            const botMessage = `
+          Player Bet: ${playerInfo?.playerAmount} (${
+              playerInfo?.playerCoefficient
+            })
+Players on Player: ${playerInfo?.playerPlayers} (${
+              playerInfo?.playerPercentage
+            })
+
+Banker Bet: ${bankerInfo?.bankerAmount} (${bankerInfo?.bankerCoefficient})
+Players on Banker: ${bankerInfo?.bankerPlayers} (${
+              bankerInfo?.bankerPercentage
+            })
+
+Remaning Time: ${12 - parseInt(elapsedSeconds)} seconds
+`;
+            if (bankerInfo?.bankerAmount) {
+              sendMessage(botMessage);
+              lastBankerBetAmount = parseFloat(
+                bankerInfo?.bankerAmount.replace(/[\$,]/g, "")
+              );
+              lastPlayerBetAmount = parseFloat(
+                playerInfo?.playerAmount.replace(/[\$,]/g, "")
+              );
+              lastBankerPopulation = parseInt(bankerInfo?.bankerPlayers);
+              lastPlayerPopulation = parseInt(playerInfo?.playerPlayers);
+              lastBankerPercentage = parseInt(
+                bankerInfo?.bankerPercentage.replace(/[\%,]/g, "")
+              );
+              lastPlayerPercentage = parseInt(
+                playerInfo?.playerPercentage.replace(/[\%,]/g, "")
+              );
+            }
+
+            startMessageSent = true;
+            endMessageSent = false;
+          }
+        }
+
+        if (!hasPulseClass && countdownStarted && !endMessageSent) {
+          // Countdown has ended
+          countdownStarted = false;
+          // endMessageSent = true; // Ensure end message is sent only once
+
+          console.log("Countdown ended");
+        }
+
+        if (endMessageSent) {
+          startMessageSent = false;
+          endMessageSent = false;
+          resultShown = false;
+        }
+      } catch (err) {
+        console.log(err);
       }
-      console.log(
-        `${currentTime} - Banker dice results:`,
-        bankerDiceResults?.diceResults,
-        "Total result:",
-        bankerDiceResults?.totalResult
-      );
-      console.log(
-        `${currentTime} - Player dice results:`,
-        playerDiceResults?.diceResults,
-        "Total result:",
-        playerDiceResults?.totalResult
-      );
-
-      // Send the message only when all dices have stopped and there's a valid result
-      if (message) {
-        console.log(message);
-        sendMessage(message);
-        resultShown = !resultShown;
-        startMessageSent = false;
-        endMessageSent = true;
-      }
-    }
-  }
-
-},100)
-      
-    }, 1500);
+    }, 500);
   } catch (error) {
     console.error("Error :", error);
   } finally {
     // This block will not be reached since the loop is infinite
     // To stop the script and close the browser, you can press Ctrl+C in the terminal
-  }
-}
-async function findElementWithRetries(
-  driver,
-  selector,
-  delayMs = 5000,
-  maxRetries = 5
-) {
-  for (let attempts = 0; attempts < maxRetries; attempts++) {
-    try {
-      const element = await driver.wait(
-        until.elementLocated(By.css(selector)),
-        delayMs
-      );
-      await driver.wait(until.elementIsVisible(element), delayMs); // Wait for the element to be visible
-      const text = await element.getText();
-      if (text) {
-        // Check if the text is not empty
-        return text;
-      }
-      throw new Error("Element found but text is empty"); // If text is empty, throw an error to retry
-    } catch (error) {
-      if (attempts === maxRetries - 1) {
-        throw error; // Rethrow the error on the last attempt
-      }
-      console.log(
-        `Waiting for element ${selector} and its text - attempt ${attempts + 1}`
-      );
-      await driver.sleep(delayMs); // Wait before retrying
-    }
   }
 }
 
