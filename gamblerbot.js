@@ -1,6 +1,8 @@
+require("dotenv").config();
 const { sendMessage } = require("./lib/telegram");
 const { Builder, By, until } = require("selenium-webdriver");
-
+const email = process.env.EMAIL;
+const password = process.env.PASSWORD;
 async function monitorPercentages() {
   let driver = await new Builder().forBrowser("chrome").build();
 
@@ -19,8 +21,8 @@ async function monitorPercentages() {
     await driver.wait(until.elementLocated(passwordField), 1000);
 
     // Populate the login form
-    await driver.findElement(usernameField).sendKeys("Desiboy25raja@gmail.com");
-    await driver.findElement(passwordField).sendKeys("Desidesi@123");
+    await driver.findElement(usernameField).sendKeys(email);
+    await driver.findElement(passwordField).sendKeys(password);
 
     // Submit the login form
     const loginSubmitButton = By.css("button.red.submit");
@@ -161,12 +163,16 @@ async function monitorPercentages() {
       const script = `
     const playerWinningDiv = document.querySelector('.winning--2bea3.player--a0c1a');
     const bankerWinningDiv = document.querySelector('.winning--2bea3.banker--f4570');
+    const tieDiv = document.querySelector('.winning--2bea3.tie--1ae4b');
     let result = 'none';
     if (playerWinningDiv) {
       result = 'player';
     } else if (bankerWinningDiv) {
       result = 'banker';
+    }else if (tieDiv){
+      result ='tie';
     }
+
     return result;
   `;
 
@@ -183,7 +189,21 @@ async function monitorPercentages() {
       // If the result hasn't changed, return 'none' to indicate no update
       return "none";
     };
-
+    const checkAndClickPlayButton = async (driver) => {
+      const script = `
+        const inactivityContainer = document.querySelector('[data-role="inactivity-message-container"]');
+        if (inactivityContainer) {
+          const playButton = inactivityContainer.querySelector('[data-role="play-button"]');
+          if (playButton) {
+            playButton.click(); // Click the play button to resume the game
+            return true; // Return true to indicate that the button was clicked
+          }
+        }
+        return false; // Return false if the inactivity container or play button was not found
+      `;
+      return await driver.executeScript(script);
+    };
+    
     let startMessageSent = false;
     let endMessageSent = false;
     let resultShown = false;
@@ -208,6 +228,14 @@ async function monitorPercentages() {
         const bankerDiceResults = await getBankerDiceResults();
         const winningResult = await checkWinningResult(driver);
         let currentGameResult;
+
+        const playButtonClicked = await checkAndClickPlayButton(driver);
+
+        if (playButtonClicked) {
+          console.log('Play button clicked to resume the game from inactivity.');
+         
+        }
+
         if (!endMessageSent && winningResult) {
           message = "";
     
@@ -254,7 +282,7 @@ async function monitorPercentages() {
             console.log(lastGameResult, currentGameResult);
             lastGameResult = currentGameResult;
           } else if (
-            winningResult === "none" &&
+            winningResult === "tie" &&
             playerDiceResults &&
             bankerDiceResults &&
             playerDiceResults?.totalResult === bankerDiceResults?.totalResult &&
@@ -263,30 +291,32 @@ async function monitorPercentages() {
           ) {
             if (bankerDiceResults?.totalResult) {
               counter++;
+              message+=lastGameResult + " " + counter
+              message+=' Tie '
               switch (bankerDiceResults.totalResult) {
                 case 2:
                 case 12:
-                  message += "88x TIE";
+                  message += "88x";
                   break;
                 case 3:
                 case 11:
-                  message += "25x TIE";
+                  message += "25x";
                   break;
                 case 4:
                 case 10:
-                  message += "10x TIE";
+                  message += "10x";
                   break;
                 case 5:
                 case 9:
-                  message += "6x TIE";
+                  message += "6x";
                   break;
                 case 6:
                 case 7:
                 case 8:
-                  message += "4x TIE";
+                  message += "4x";
                   break;
                 default:
-                  message += bankerDiceResults.totalResult + " TIE";
+                  message += bankerDiceResults.totalResult ;
               }
             }
           }
