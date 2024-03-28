@@ -21,14 +21,14 @@ async function monitorPercentages() {
 
     // ... Perform login steps before this ...
     const entrarButton = By.css("a.link");
-    await driver.wait(until.elementLocated(entrarButton), 100);
+    await driver.wait(until.elementLocated(entrarButton), 10000);
     await driver.findElement(entrarButton).click();
 
     // Wait for the login form to be visible
     const usernameField = By.css('input[name="username"]');
     const passwordField = By.css('input[name="password"]');
-    await driver.wait(until.elementLocated(usernameField), 1000);
-    await driver.wait(until.elementLocated(passwordField), 1000);
+    await driver.wait(until.elementLocated(usernameField), 10000);
+    await driver.wait(until.elementLocated(passwordField), 10000);
 
     // Populate the login form
     await driver.findElement(usernameField).sendKeys(email);
