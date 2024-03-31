@@ -1,10 +1,21 @@
 require("dotenv").config();
 const { sendMessage } = require("./lib/telegram");
 const { Builder, By, until } = require("selenium-webdriver");
+const chrome = require("selenium-webdriver/chrome");
 const email = process.env.EMAIL;
 const password = process.env.PASSWORD;
 async function monitorPercentages() {
-  let driver = await new Builder().forBrowser("chrome").build();
+  let options = new chrome.Options();
+  options.addArguments('--headless'); // Running in headless mode
+  options.addArguments('--disable-gpu'); // Disabling GPU hardware acceleration
+  options.addArguments('--no-sandbox'); // Disabling the sandbox for running untrusted code
+  options.addArguments('--disable-dev-shm-usage'); // Overcome limited resource problems
+
+  let driver = await new Builder()
+    .forBrowser('chrome')
+    .setChromeOptions(options)
+    .build();
+
 
   try {
     await driver.get("https://blaze-7.com/pt/games/bac-bo");
