@@ -5,30 +5,17 @@ const chrome = require("selenium-webdriver/chrome");
 const email = process.env.EMAIL;
 const password = process.env.PASSWORD;
 
-
-const iframeLoaded = async (driver, iframe) => {
-  try {
-    await driver.switchTo().frame(iframe);
-    await driver.executeScript('return document.readyState');
-    await driver.switchTo().defaultContent();
-    return true;
-  } catch (error) {
-    return false;
-  }
-};
-
 async function monitorPercentages() {
   let options = new chrome.Options();
-  options.addArguments('--headless'); // Running in headless mode
-  options.addArguments('--disable-gpu'); // Disabling GPU hardware acceleration
-  options.addArguments('--no-sandbox'); // Disabling the sandbox for running untrusted code
-  options.addArguments('--disable-dev-shm-usage'); // Overcome limited resource problems
+  options.addArguments("--headless"); // Running in headless mode
+  options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
+  options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
+  options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
 
   let driver = await new Builder()
-    .forBrowser('chrome')
+    .forBrowser("chrome")
     .setChromeOptions(options)
     .build();
-
 
   try {
     await driver.get("https://blaze-7.com/pt/games/bac-bo");
@@ -63,8 +50,12 @@ async function monitorPercentages() {
     const iframeContainer = await driver.findElement(gameWrapperDiv);
 
     // Locate the iframe within the div and switch to it
-    const iframe = await iframeContainer.findElement(By.css("iframe"));
-    await driver.wait(() => iframeLoaded(driver, iframe), 10000);
+    // Wait for the iframe to be located within the div
+    const iframeLocator = By.css("iframe");
+    await driver.wait(until.elementLocated(iframeLocator), 10000);
+
+    // Find the iframe and switch to it
+    const iframe = await iframeContainer.findElement(iframeLocator);
     await driver.switchTo().frame(iframe);
 
     // Now that we've switched to the iframe, check for the presence of an element with the class `.games-container`
