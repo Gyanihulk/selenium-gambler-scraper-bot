@@ -193,8 +193,10 @@ async function monitorPercentages() {
       const script = `
         const inactivityContainer = document.querySelector('[data-role="inactivity-message-container"]');
         if (inactivityContainer) {
+          console.log("container found");
           const playButton = inactivityContainer.querySelector('[data-role="play-button"]');
           if (playButton) {
+            console.log("button found",playButton);
             playButton.click(); // Click the play button to resume the game
             return true; // Return true to indicate that the button was clicked
           }
@@ -203,7 +205,30 @@ async function monitorPercentages() {
       `;
       return await driver.executeScript(script);
     };
-    
+    const checkAndClickOkButton = async (driver) => {
+      const script = `
+        const okButton = document.querySelector('[data-role="button-ok"]');
+        if (okButton && okButton.offsetHeight > 0 && okButton.offsetWidth > 0) {
+          console.log("OK button found", okButton);
+          okButton.click(); // Click the OK button
+          return true; // Return true to indicate that the button was clicked
+        }
+        return false; // Return false if the OK button was not found or not visible
+      `;
+      return await driver.executeScript(script);
+    };
+    const checkAndClickInactivityMessageClickable = async (driver) => {
+      const script = `
+        const clickableDiv = document.querySelector('div[data-role="inactivity-message-clickable"]');
+        if (clickableDiv) {
+          clickableDiv.click(); // Click the div to handle the inactivity
+          return true; // Return true to indicate that the div was clicked
+        }
+        return false; // Return false if the div was not found
+      `;
+      return await driver.executeScript(script);
+    };
+
     let startMessageSent = false;
     let endMessageSent = false;
     let resultShown = false;
@@ -216,7 +241,7 @@ async function monitorPercentages() {
     let lastPlayerPopulation = 0;
     let lastBankerPercentage = 0;
     let lastPlayerPercentage = 0;
-    let lowBetHighPopulationCounter=0;
+    let lowBetHighPopulationCounter = 0;
     let counter = 1;
     let lastGameResult;
     setInterval(async () => {
@@ -232,24 +257,29 @@ async function monitorPercentages() {
         const playButtonClicked = await checkAndClickPlayButton(driver);
 
         if (playButtonClicked) {
-          console.log('Play button clicked to resume the game from inactivity.');
-         
+          console.log(
+            "Play button clicked to resume the game from inactivity."
+          );
         }
+        checkAndClickOkButton(driver).then((clicked) => {
+          if (clicked) {
+            console.log("The OK button was found and clicked.");
+          }
+        });
 
+        const clickableDivClicked =
+          await checkAndClickInactivityMessageClickable(driver);
+        if (clickableDivClicked) {
+          console.log("Inactivity message clickable div clicked.");
+        }
         if (!endMessageSent && winningResult) {
           message = "";
-    
 
           if (winningResult === "player") {
             console.log("Player wins", playerDiceResults);
             currentGameResult =
               lastPlayerBetAmount > lastBankerBetAmount ? "High" : "Low";
 
-            if (lastGameResult == currentGameResult) {
-              counter++;
-            } else {
-              counter = 1;
-            }
             if (
               lastPlayerPopulation > lastBankerPopulation &&
               lastPlayerBetAmount < lastBankerBetAmount
@@ -258,6 +288,11 @@ async function monitorPercentages() {
               message += `${currentGameResult} Player ${counter} - Low Bet by High Pop`;
             } else {
               message += `${currentGameResult} Player ${counter}`;
+            }
+            if (lastGameResult == currentGameResult) {
+              counter++;
+            } else {
+              counter = 1;
             }
             console.log(lastGameResult, currentGameResult);
             lastGameResult = currentGameResult;
@@ -291,8 +326,8 @@ async function monitorPercentages() {
           ) {
             if (bankerDiceResults?.totalResult) {
               counter++;
-              message+=lastGameResult + " " + counter
-              message+=' Tie '
+              message += lastGameResult + " " + counter;
+              message += " Tie ";
               switch (bankerDiceResults.totalResult) {
                 case 2:
                 case 12:
@@ -316,7 +351,7 @@ async function monitorPercentages() {
                   message += "4x";
                   break;
                 default:
-                  message += bankerDiceResults.totalResult ;
+                  message += bankerDiceResults.totalResult;
               }
             }
           }
