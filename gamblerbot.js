@@ -49,6 +49,11 @@ async function monitorPercentages() {
     await driver.wait(until.elementLocated(gameWrapperDiv), 10000);
     const iframeContainer = await driver.findElement(gameWrapperDiv);
 
+    await driver.wait(async () => {
+      const readyState = await driver.executeScript('return document.readyState');
+      return readyState === 'complete';
+    }, 10000);
+    
     // Locate the iframe within the div and switch to it
     // Wait for the iframe to be located within the div
     const iframeLocator = By.css("iframe");
