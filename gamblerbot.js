@@ -4,6 +4,19 @@ const { Builder, By, until } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 const email = process.env.EMAIL;
 const password = process.env.PASSWORD;
+
+
+const iframeLoaded = async (driver, iframe) => {
+  try {
+    await driver.switchTo().frame(iframe);
+    await driver.executeScript('return document.readyState');
+    await driver.switchTo().defaultContent();
+    return true;
+  } catch (error) {
+    return false;
+  }
+};
+
 async function monitorPercentages() {
   let options = new chrome.Options();
   options.addArguments('--headless'); // Running in headless mode
@@ -51,6 +64,7 @@ async function monitorPercentages() {
 
     // Locate the iframe within the div and switch to it
     const iframe = await iframeContainer.findElement(By.css("iframe"));
+    await driver.wait(() => iframeLoaded(driver, iframe), 10000);
     await driver.switchTo().frame(iframe);
 
     // Now that we've switched to the iframe, check for the presence of an element with the class `.games-container`
