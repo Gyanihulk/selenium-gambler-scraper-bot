@@ -28,14 +28,14 @@ async function monitorPercentages() {
 
     // ... Perform login steps before this ...
     const entrarButton = By.css("a.link");
-    await driver.wait(until.elementLocated(entrarButton), 10000);
+    await driver.wait(until.elementLocated(entrarButton), 1000000);
     await driver.findElement(entrarButton).click();
 
     // Wait for the login form to be visible
     const usernameField = By.css('input[name="username"]');
     const passwordField = By.css('input[name="password"]');
-    await driver.wait(until.elementLocated(usernameField), 10000);
-    await driver.wait(until.elementLocated(passwordField), 10000);
+    await driver.wait(until.elementLocated(usernameField), 1000000);
+    await driver.wait(until.elementLocated(passwordField), 1000000);
 
     // Populate the login form
     await driver.findElement(usernameField).sendKeys(email);
@@ -43,16 +43,16 @@ async function monitorPercentages() {
 
     // Submit the login form
     const loginSubmitButton = By.css("button.red.submit");
-    await driver.wait(until.elementLocated(loginSubmitButton), 10000);
+    await driver.wait(until.elementLocated(loginSubmitButton), 1000000);
     await driver.findElement(loginSubmitButton).click();
     console.log("Attempting Login");
     // Wait for successful login by checking for a logout button, profile link, or similar element
     const logoutButton = By.css(".wallet-dropdown"); // Replace with the actual selector for the logout button or profile link
-    await driver.wait(until.elementLocated(logoutButton), 10000);
+    await driver.wait(until.elementLocated(logoutButton), 1000000);
     console.log("Wallet dropdown found. Login confirmed.");
 
     const gameWrapperDiv = By.id("game_wrapper");
-    await driver.wait(until.elementLocated(gameWrapperDiv), 10000);
+    await driver.wait(until.elementLocated(gameWrapperDiv), 1000000);
     const iframeContainer = await driver.findElement(gameWrapperDiv);
 
     await driver.wait(async () => {
@@ -82,7 +82,7 @@ async function monitorPercentages() {
 
     // Now that we've switched to the iframe, check for the presence of an element with the class `.games-container`
     const gamesContainer = By.css(".games-container");
-    await driver.wait(until.elementLocated(gamesContainer), 10000); // Wait up to 10 seconds
+    await driver.wait(until.elementLocated(gamesContainer), 1000000); // Wait up to 10 seconds
     console.log("Inside the iframe: .games-container found.");
 
     const secondIframeWithinGamesContainer = await driver.findElement(
@@ -94,7 +94,7 @@ async function monitorPercentages() {
     const countdownTimerDiv = By.css(
       'div[data-role="countdown-timer"].countdown--2398a.desktop--57cd3'
     );
-    await driver.wait(until.elementLocated(countdownTimerDiv), 10000);
+    await driver.wait(until.elementLocated(countdownTimerDiv), 1000000);
     console.log("Countdown timer div found inside the second iframe.");
 
     const checkPulseClass = async () => {
