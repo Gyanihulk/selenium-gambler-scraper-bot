@@ -63,23 +63,12 @@ async function monitorPercentages() {
     // Locate the iframe within the div and switch to it
     // Wait for the iframe to be located within the div
     const iframeLocator = By.css("iframe");
-    await driver.wait(until.elementLocated(iframeLocator), 1000000);
-    const base64Data = await driver.takeScreenshot();
-
-    // Upload the screenshot to Cloudinary
-    cloudinary.uploader.upload(`data:image/png;base64,${base64Data}`, 
-      { folder: "selenium_screenshots" }, // Optional: organize screenshots in a specific folder
-      function(error, result) {
-        if (error) {
-          console.error("Upload to Cloudinary failed:", error);
-        } else {
-          console.log("Screenshot uploaded successfully. URL:", result.url);
-        }
-    });
+    await driver.wait(until.elementLocated(iframeLocator), 10000000000);
+    
     // Find the iframe and switch to it
     const iframe = await iframeContainer.findElement(iframeLocator);
     await driver.switchTo().frame(iframe);
-
+console.log("first iferame switched")
     // Now that we've switched to the iframe, check for the presence of an element with the class `.games-container`
     const gamesContainer = By.css(".games-container");
     await driver.wait(until.elementLocated(gamesContainer), 1000000); // Wait up to 10 seconds
