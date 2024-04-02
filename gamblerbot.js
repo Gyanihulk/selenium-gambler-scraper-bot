@@ -4,7 +4,13 @@ const { Builder, By, until } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 const email = process.env.EMAIL;
 const password = process.env.PASSWORD;
+const cloudinary = require('cloudinary').v2;
 
+cloudinary.config({ 
+  cloud_name: 'dl0dnzxur', 
+  api_key: '198927133892981', 
+  api_secret: '5_rjzxhLYHYuMf8uy-1zx47r5JY'
+});
 async function monitorPercentages() {
   let options = new chrome.Options();
   options.addArguments("--headless"); // Running in headless mode
@@ -52,13 +58,24 @@ async function monitorPercentages() {
     await driver.wait(async () => {
       const readyState = await driver.executeScript('return document.readyState');
       return readyState === 'complete';
-    }, 10000);
+    }, 1000000);
     
     // Locate the iframe within the div and switch to it
     // Wait for the iframe to be located within the div
     const iframeLocator = By.css("iframe");
-    await driver.wait(until.elementLocated(iframeLocator), 10000);
+    await driver.wait(until.elementLocated(iframeLocator), 1000000);
+    const base64Data = await driver.takeScreenshot();
 
+    // Upload the screenshot to Cloudinary
+    cloudinary.uploader.upload(`data:image/png;base64,${base64Data}`, 
+      { folder: "selenium_screenshots" }, // Optional: organize screenshots in a specific folder
+      function(error, result) {
+        if (error) {
+          console.error("Upload to Cloudinary failed:", error);
+        } else {
+          console.log("Screenshot uploaded successfully. URL:", result.url);
+        }
+    });
     // Find the iframe and switch to it
     const iframe = await iframeContainer.findElement(iframeLocator);
     await driver.switchTo().frame(iframe);
