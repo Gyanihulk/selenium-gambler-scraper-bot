@@ -13,10 +13,10 @@ cloudinary.config({
 });
 async function monitorPercentages() {
   let options = new chrome.Options();
-  options.addArguments("--headless"); // Running in headless mode
-  options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
-  options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
-  options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
+  // options.addArguments("--headless"); // Running in headless mode
+  // options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
+  // options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
+  // options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
 
   let driver = await new Builder()
     .forBrowser("chrome")
@@ -343,7 +343,7 @@ async function monitorPercentages() {
               message += `${currentGameResult} Player ${counter}`;
             }
             if (lastGameResult == currentGameResult) {
-              counter++;
+              ++counter;
             } else {
               counter = 1;
             }
@@ -354,7 +354,7 @@ async function monitorPercentages() {
             currentGameResult =
               lastBankerBetAmount > lastPlayerBetAmount ? "High" : "Low";
             if (lastGameResult == currentGameResult) {
-              counter++;
+              ++counter;
             } else {
               counter = 1;
             }
@@ -459,13 +459,44 @@ Remaning Time: ${12 - parseInt(elapsedSeconds)} seconds
               playerInfo?.playerPercentage.replace(/[\%,]/g, "")
             );
           }
-          if (elapsedSeconds >= 9) {
+          if (elapsedSeconds >= 10) {
             // Send start game message
 
             console.log(bankerInfo, playerInfo);
 
             if (bankerInfo?.bankerAmount) {
-              sendMessage(botMessage);
+              if (playerInfo?.playerAmount) {
+                botMessage = `
+             Player Bet: ${playerInfo?.playerAmount} (${
+                 playerInfo?.playerCoefficient
+               })
+   Players on Player: ${playerInfo?.playerPlayers} (${
+                 playerInfo?.playerPercentage
+               })
+   
+   Banker Bet: ${bankerInfo?.bankerAmount} (${bankerInfo?.bankerCoefficient})
+   Players on Banker: ${bankerInfo?.bankerPlayers} (${
+                 bankerInfo?.bankerPercentage
+               })
+   
+   Remaning Time: ${12 - parseInt(elapsedSeconds)} seconds
+   `;
+               lastBankerBetAmount = parseFloat(
+                 bankerInfo?.bankerAmount?.replace(/[\$,]/g, "")
+               );
+               lastPlayerBetAmount = parseFloat(
+                 playerInfo?.playerAmount?.replace(/[\$,]/g, "")
+               );
+               lastBankerPopulation = parseInt(bankerInfo?.bankerPlayers);
+               lastPlayerPopulation = parseInt(playerInfo?.playerPlayers);
+               lastBankerPercentage = parseInt(
+                 bankerInfo?.bankerPercentage.replace(/[\%,]/g, "")
+               );
+               lastPlayerPercentage = parseInt(
+                 playerInfo?.playerPercentage.replace(/[\%,]/g, "")
+               );
+             }
+              await sendMessage(botMessage);
             }
 
             startMessageSent = true;
