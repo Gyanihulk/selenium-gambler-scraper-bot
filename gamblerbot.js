@@ -284,8 +284,6 @@ async function monitorPercentages() {
     let lowBetHighPopulationCounter = 0;
     let counter = 1;
     let lastGameResult;
-    let lastValidPlayerInfo = null;
-let lastValidBankerInfo = null;
     setInterval(async () => {
       try {
         const hasPulseClass = await checkPulseClass();
@@ -295,12 +293,7 @@ let lastValidBankerInfo = null;
         const bankerDiceResults = await getBankerDiceResults();
         const winningResult = await checkWinningResult(driver);
         let currentGameResult;
-        if (playerInfo && playerInfo.playerAmount !== null) {
-          lastValidPlayerInfo = playerInfo;
-        }
-        if (bankerInfo && bankerInfo.bankerAmount !== null) {
-          lastValidBankerInfo = bankerInfo;
-        }
+
         const playButtonClicked = await checkAndClickPlayButton(driver);
 
         if (playButtonClicked) {
@@ -438,17 +431,23 @@ let lastValidBankerInfo = null;
           if (elapsedSeconds >= 9) {
             // Send start game message
 
+            console.log(bankerInfo, playerInfo);
             const botMessage = `
-            Player Bet: ${lastValidPlayerInfo?.playerAmount || 'N/A'} (${lastValidPlayerInfo?.playerCoefficient})
-            Players on Player: ${lastValidPlayerInfo?.playerPlayers || 'N/A'} (${lastValidPlayerInfo?.playerPercentage})
-            
-            Banker Bet: ${lastValidBankerInfo?.bankerAmount || 'N/A'} (${lastValidBankerInfo?.bankerCoefficient})
-            Players on Banker: ${lastValidBankerInfo?.bankerPlayers || 'N/A'} (${lastValidBankerInfo?.bankerPercentage})
-            
-            Remaning Time: ${12 - parseInt(elapsedSeconds)} seconds
-            `;
+          Player Bet: ${playerInfo?.playerAmount} (${
+              playerInfo?.playerCoefficient
+            })
+Players on Player: ${playerInfo?.playerPlayers} (${
+              playerInfo?.playerPercentage
+            })
+
+Banker Bet: ${bankerInfo?.bankerAmount} (${bankerInfo?.bankerCoefficient})
+Players on Banker: ${bankerInfo?.bankerPlayers} (${
+              bankerInfo?.bankerPercentage
+            })
+
+Remaning Time: ${12 - parseInt(elapsedSeconds)} seconds
+`;
             if (bankerInfo?.bankerAmount) {
-              console.log(bankerInfo, playerInfo);
               sendMessage(botMessage);
               lastBankerBetAmount = parseFloat(
                 bankerInfo?.bankerAmount.replace(/[\$,]/g, "")
