@@ -13,10 +13,10 @@ cloudinary.config({
 });
 async function monitorPercentages() {
   let options = new chrome.Options();
-  // options.addArguments("--headless"); // Running in headless mode
-  // options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
-  // options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
-  // options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
+  options.addArguments("--headless"); // Running in headless mode
+  options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
+  options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
+  options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
 
   let driver = await new Builder()
     .forBrowser("chrome")
