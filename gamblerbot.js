@@ -4,12 +4,12 @@ const { Builder, By, until } = require("selenium-webdriver");
 const chrome = require("selenium-webdriver/chrome");
 const email = process.env.EMAIL;
 const password = process.env.PASSWORD;
-const cloudinary = require('cloudinary').v2;
+const cloudinary = require("cloudinary").v2;
 
-cloudinary.config({ 
-  cloud_name: 'dl0dnzxur', 
-  api_key: '198927133892981', 
-  api_secret: '5_rjzxhLYHYuMf8uy-1zx47r5JY'
+cloudinary.config({
+  cloud_name: "dl0dnzxur",
+  api_key: "198927133892981",
+  api_secret: "5_rjzxhLYHYuMf8uy-1zx47r5JY",
 });
 async function monitorPercentages() {
   let options = new chrome.Options();
@@ -24,6 +24,7 @@ async function monitorPercentages() {
     .build();
 
   try {
+    await sendMessage("Script starting");
     await driver.get("https://blaze-7.com/pt/games/bac-bo");
 
     // ... Perform login steps before this ...
@@ -56,19 +57,21 @@ async function monitorPercentages() {
     const iframeContainer = await driver.findElement(gameWrapperDiv);
 
     await driver.wait(async () => {
-      const readyState = await driver.executeScript('return document.readyState');
-      return readyState === 'complete';
+      const readyState = await driver.executeScript(
+        "return document.readyState"
+      );
+      return readyState === "complete";
     }, 10000);
-    
+
     // Locate the iframe within the div and switch to it
     // Wait for the iframe to be located within the div
     const iframeLocator = By.css("iframe");
     await driver.wait(until.elementLocated(iframeLocator), 100000);
-    
+
     // Find the iframe and switch to it
     const iframe = await iframeContainer.findElement(iframeLocator);
     await driver.switchTo().frame(iframe);
-console.log("first iferame switched")
+    console.log("first iferame switched");
     // Now that we've switched to the iframe, check for the presence of an element with the class `.games-container`
     const gamesContainer = By.css(".games-container");
     await driver.wait(until.elementLocated(gamesContainer), 10000); // Wait up to 10 seconds
@@ -244,6 +247,19 @@ console.log("first iferame switched")
       `;
       return await driver.executeScript(script);
     };
+    const checkAndClickFooter = async (driver) => {
+      const script = `
+        const okButton = document.querySelector('[data-role="footer-left"]');
+        if (okButton && okButton.offsetHeight > 0 && okButton.offsetWidth > 0) {
+          console.log("foooter clicked", okButton);
+          okButton.click(); // Click the OK button
+          return true; // Return true to indicate that the button was clicked
+        }
+        return false; // Return false if the OK button was not found or not visible
+      `;
+      return await driver.executeScript(script);
+    };
+
     const checkAndClickInactivityMessageClickable = async (driver) => {
       const script = `
         const clickableDiv = document.querySelector('div[data-role="inactivity-message-clickable"]');
@@ -266,8 +282,6 @@ console.log("first iferame switched")
     let lastPlayerBetAmount = 0;
     let lastBankerPopulation = 0;
     let lastPlayerPopulation = 0;
-    let lastBankerPercentage = 0;
-    let lastPlayerPercentage = 0;
     let lowBetHighPopulationCounter = 0;
     let counter = 1;
     let lastGameResult;
@@ -287,13 +301,25 @@ console.log("first iferame switched")
           console.log(
             "Play button clicked to resume the game from inactivity."
           );
+          await sendMessage(
+            "Play button clicked to resume the game from inactivity."
+          );
         }
-        checkAndClickOkButton(driver).then((clicked) => {
+        checkAndClickOkButton(driver).then(async (clicked) => {
           if (clicked) {
             console.log("The OK button was found and clicked.");
+            await driver.wait(
+              until.elementLocated(By.css('[data-role="button-ok"]')),
+              5000
+            );
+            const okButton = await driver.findElement(
+              By.css('[data-role="button-ok"]')
+            );
+            await driver.sleep(1000); // Wait for 1 second
+            await okButton.click();
           }
         });
-
+        checkAndClickFooter(driver);
         const clickableDivClicked =
           await checkAndClickInactivityMessageClickable(driver);
         if (clickableDivClicked) {
@@ -398,16 +424,12 @@ console.log("first iferame switched")
           countdownStarted = true;
           startTime = new Date();
         }
-
+let botMessage
         if (countdownStarted && !startMessageSent) {
           // While countdown is active, log the remaining time
           const elapsedSeconds = (new Date() - startTime) / 1000;
-
-          if (elapsedSeconds >= 10) {
-            // Send start game message
-
-            console.log(bankerInfo, playerInfo);
-            const botMessage = `
+          if (playerInfo?.playerAmount) {
+             botMessage = `
           Player Bet: ${playerInfo?.playerAmount} (${
               playerInfo?.playerCoefficient
             })
@@ -422,22 +444,28 @@ Players on Banker: ${bankerInfo?.bankerPlayers} (${
 
 Remaning Time: ${12 - parseInt(elapsedSeconds)} seconds
 `;
+            lastBankerBetAmount = parseFloat(
+              bankerInfo?.bankerAmount?.replace(/[\$,]/g, "")
+            );
+            lastPlayerBetAmount = parseFloat(
+              playerInfo?.playerAmount?.replace(/[\$,]/g, "")
+            );
+            lastBankerPopulation = parseInt(bankerInfo?.bankerPlayers);
+            lastPlayerPopulation = parseInt(playerInfo?.playerPlayers);
+            lastBankerPercentage = parseInt(
+              bankerInfo?.bankerPercentage.replace(/[\%,]/g, "")
+            );
+            lastPlayerPercentage = parseInt(
+              playerInfo?.playerPercentage.replace(/[\%,]/g, "")
+            );
+          }
+          if (elapsedSeconds >= 9) {
+            // Send start game message
+
+            console.log(bankerInfo, playerInfo);
+
             if (bankerInfo?.bankerAmount) {
               sendMessage(botMessage);
-              lastBankerBetAmount = parseFloat(
-                bankerInfo?.bankerAmount.replace(/[\$,]/g, "")
-              );
-              lastPlayerBetAmount = parseFloat(
-                playerInfo?.playerAmount.replace(/[\$,]/g, "")
-              );
-              lastBankerPopulation = parseInt(bankerInfo?.bankerPlayers);
-              lastPlayerPopulation = parseInt(playerInfo?.playerPlayers);
-              lastBankerPercentage = parseInt(
-                bankerInfo?.bankerPercentage.replace(/[\%,]/g, "")
-              );
-              lastPlayerPercentage = parseInt(
-                playerInfo?.playerPercentage.replace(/[\%,]/g, "")
-              );
             }
 
             startMessageSent = true;
@@ -467,15 +495,17 @@ Remaning Time: ${12 - parseInt(elapsedSeconds)} seconds
     const base64Data = await driver.takeScreenshot();
 
     // Upload the screenshot to Cloudinary
-    cloudinary.uploader.upload(`data:image/png;base64,${base64Data}`, 
+    cloudinary.uploader.upload(
+      `data:image/png;base64,${base64Data}`,
       { folder: "selenium_screenshots" }, // Optional: organize screenshots in a specific folder
-      function(error, result) {
+      function (error, result) {
         if (error) {
           console.error("Upload to Cloudinary failed:", error);
         } else {
           console.log("Screenshot uploaded successfully. URL:", result.url);
         }
-    });
+      }
+    );
   } finally {
     // This block will not be reached since the loop is infinite
     // To stop the script and close the browser, you can press Ctrl+C in the terminal
