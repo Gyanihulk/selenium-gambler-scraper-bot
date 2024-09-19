@@ -13,10 +13,10 @@ cloudinary.config({
 });
 async function monitorPercentages() {
   let options = new chrome.Options();
-  options.addArguments("--headless"); // Running in headless mode
-  options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
-  options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
-  options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
+  // options.addArguments("--headless"); // Running in headless mode
+  // options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
+  // options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
+  // options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
 
   let driver = await new Builder()
     .forBrowser("chrome")
@@ -25,7 +25,13 @@ async function monitorPercentages() {
 
   try {
     await driver.get("https://blaze-7.com/pt/games/bac-bo");
-
+    // Wait for the cookies acceptance button to be visible and clickable
+    const acceptCookiesButton = By.xpath(
+      "//button[contains(text(), 'ACEITAR TODOS OS COOKIES')]"
+    );
+    await driver.wait(until.elementLocated(acceptCookiesButton), 10000);
+    const cookieButtonElement = await driver.findElement(acceptCookiesButton);
+    await cookieButtonElement.click();
     // ... Perform login steps before this ...
     const entrarButton = By.css("a.link");
     await driver.wait(until.elementLocated(entrarButton), 10000);
@@ -82,11 +88,15 @@ async function monitorPercentages() {
     await driver.switchTo().frame(secondIframeWithinGamesContainer);
 
     // Now that we are inside the second iframe, find the div with data-role="countdown-timer" and the specific class
-    const countdownTimerDiv = By.css(
-      'div[data-role="countdown-timer"].countdown--2398a.desktop--57cd3'
+    const bettingContainer = By.css(
+      "div.gradient--112b5.external--6539c.betting--ae3ee.whiteTheme--2f223"
     );
-    await driver.wait(until.elementLocated(countdownTimerDiv), 10000);
-    console.log("Countdown timer div found inside the second iframe.");
+    await driver.wait(until.elementLocated(bettingContainer), 10000);
+    const containerElement = await driver.findElement(bettingContainer);
+    console.log(
+      "Countdown timer div found inside the second iframe.",
+      containerElement
+    );
 
     const checkPulseClass = async () => {
       const script = `
@@ -99,82 +109,79 @@ async function monitorPercentages() {
 
     const getPlayerDiceResults = async () => {
       const script = `
-            const playerDiceResultsDiv = document.querySelector('.content--69b27.player--9442a .diceResults--e67fe');
-            if (playerDiceResultsDiv) {
-              const diceElements = playerDiceResultsDiv.querySelectorAll('.dieResult--ef260');
-              const diceResults = Array.from(diceElements).map(die => {
-                const valueClassPrefix = 'value';
-                const dieClassList = Array.from(die.classList);
-                const valueClass = dieClassList.find(className => className.startsWith(valueClassPrefix));
-                return valueClass ? parseInt(valueClass.match(/\\d+/)[0], 10) : null;
-              });
-        
-              const totalResultElement = playerDiceResultsDiv.querySelector('.result--e6ea2');
-              const totalResult = totalResultElement ? parseInt(totalResultElement.textContent.trim(), 10) : null;
-        
-              return { diceResults, totalResult };
-            }
-            return null;
-          `;
-
+        const playerDiceResultsDiv = document.querySelector('.content--0f6cb .content--8fdbb.player--b0a44 .diceResults--07087');
+        if (playerDiceResultsDiv) {
+          const diceElements = playerDiceResultsDiv.querySelectorAll('.dieResult--879b3');
+          const diceResults = Array.from(diceElements).map(die => {
+            const valueClass = Array.from(die.classList).find(className => className.startsWith('value'));
+            return valueClass ? parseInt(valueClass.match(/value(\\d+)--/)[1], 10) : null;
+          });
+          
+          const totalResultElement = playerDiceResultsDiv.querySelector('.result--709b0');
+          const totalResult = totalResultElement ? parseInt(totalResultElement.textContent.trim(), 10) : null;
+          
+          return { diceResults, totalResult };
+        }
+        return null;
+      `;
+    
       return await driver.executeScript(script);
     };
-
+    
+    const getBankerDiceResults = async () => {
+      const script = `
+        const bankerDiceResultsDiv = document.querySelector('.content--0f6cb .content--8fdbb.banker--cf253 .diceResults--07087');
+        if (bankerDiceResultsDiv) {
+          const diceElements = bankerDiceResultsDiv.querySelectorAll('[class*="dieResult--"]');
+          const diceResults = Array.from(diceElements).map(die => {
+            const valueClass = Array.from(die.classList).find(className => className.startsWith('value'));
+            return valueClass ? parseInt(valueClass.match(/value(\\d+)--/)[1], 10) : null;
+          });
+    
+          const totalResultElement = bankerDiceResultsDiv.querySelector('.result--709b0');
+          const totalResult = totalResultElement ? parseInt(totalResultElement.textContent.trim(), 10) : null;
+    
+          return { diceResults, totalResult };
+        }
+        return null;
+      `;
+    
+      return await driver.executeScript(script);
+    };
+    
     const getBetStatsInfoPlayer = async () => {
       const script = `
-            const playerInfoDiv = document.querySelector('.content--69b27.player--9442a');
-            if (playerInfoDiv) {
-              const playerPercentage = playerInfoDiv.querySelector('.value--d9c0b') ? playerInfoDiv.querySelector('.value--d9c0b').textContent.trim() : null;
-              const playerAmount = playerInfoDiv.querySelector('.amount--4976c') ? playerInfoDiv.querySelector('.amount--4976c').textContent.trim() : null;
-              const playerPlayers = playerInfoDiv.querySelector('.players--06980') ? playerInfoDiv.querySelector('.players--06980').textContent.trim() : null;
-              const playerCoefficient = playerInfoDiv.querySelector('.coefficient--e278b') ? playerInfoDiv.querySelector('.coefficient--e278b').textContent.trim() : null;
-              const playerName = playerInfoDiv.querySelector('.name--74e95') ? playerInfoDiv.querySelector('.name--74e95').textContent.trim() : null;
-              return { playerPercentage, playerAmount, playerPlayers, playerCoefficient, playerName };
-            }
-            return null;
-          `;
+        const playerInfoDiv = document.querySelector('.betSpot--1133f.player--936df .content--0f6cb');
+        if (playerInfoDiv) {
+          const playerPercentage = playerInfoDiv.querySelector('.svgPercentIndicator--f0e76 .value--2f068') ? playerInfoDiv.querySelector('.svgPercentIndicator--f0e76 .value--2f068').textContent.trim() : null;
+          const playerAmount = playerInfoDiv.querySelector('.amount--188f7') ? playerInfoDiv.querySelector('.amount--188f7').textContent.trim() : null;
+          const playerPlayers = playerInfoDiv.querySelector('.players--ad032') ? playerInfoDiv.querySelector('.players--ad032').textContent.trim() : null;
+          const playerCoefficient = playerInfoDiv.querySelector('.coefficient--f825f') ? playerInfoDiv.querySelector('.coefficient--f825f').textContent.trim() : null;
+          const playerName = playerInfoDiv.querySelector('.name--be392') ? playerInfoDiv.querySelector('.name--be392').textContent.trim() : null;
+          return { playerPercentage, playerAmount, playerPlayers, playerCoefficient, playerName };
+        }
+        return null;
+      `;
 
       return await driver.executeScript(script);
     };
 
     // ... existing code ...
 
-    const getBankerDiceResults = async () => {
-      const script = `
-            const bankerDiceResultsDiv = document.querySelector('.content--69b27.banker--90e20 .diceResults--e67fe');
-            if (bankerDiceResultsDiv) {
-              const diceElements = bankerDiceResultsDiv.querySelectorAll('.dieResult--ef260');
-              const diceResults = Array.from(diceElements).map(die => {
-                const valueClassPrefix = 'value';
-                const dieClassList = Array.from(die.classList);
-                const valueClass = dieClassList.find(className => className.startsWith(valueClassPrefix));
-                return valueClass ? parseInt(valueClass.match(/\\d+/)[0], 10) : null;
-              });
-        
-              const totalResultElement = bankerDiceResultsDiv.querySelector('.result--e6ea2');
-              const totalResult = totalResultElement ? parseInt(totalResultElement.textContent.trim(), 10) : null;
-        
-              return { diceResults, totalResult };
-            }
-            return null;
-          `;
-
-      return await driver.executeScript(script);
-    };
 
     const getBankerInfo = async () => {
       const script = `
-            const bankerInfoDiv = document.querySelector('.content--69b27.desktop--32202.banker--90e20');
-            if (bankerInfoDiv) {
-              const bankerAmount = bankerInfoDiv.querySelector('.info--4f685.banker--733e8 .amount--4976c') ? bankerInfoDiv.querySelector('.info--4f685.banker--733e8 .amount--4976c').textContent.trim() : null;
-              const bankerPlayers = bankerInfoDiv.querySelector('.info--4f685.banker--733e8 .players--06980') ? bankerInfoDiv.querySelector('.info--4f685.banker--733e8 .players--06980').textContent.trim() : null;
-              const bankerPercentage = bankerInfoDiv.querySelector('.svgPercentIndicator--e8df0 .value--d9c0b') ? bankerInfoDiv.querySelector('.svgPercentIndicator--e8df0 .value--d9c0b').textContent.trim() : null;
-              const bankerCoefficient = bankerInfoDiv.querySelector('.coefficient--e278b') ? bankerInfoDiv.querySelector('.coefficient--e278b').textContent.trim() : null;
-              const bankerName = bankerInfoDiv.querySelector('.name--74e95') ? bankerInfoDiv.querySelector('.name--74e95').textContent.trim() : 'BANKER';
-              return { bankerAmount, bankerPlayers, bankerPercentage, bankerCoefficient, bankerName };
-            }
-            return null;
-          `;
+        const bankerInfoDiv = document.querySelector('.betSpot--1133f.banker--cff3f .content--0f6cb');
+        if (bankerInfoDiv) {
+          const bankerAmount = bankerInfoDiv.querySelector('.amount--188f7') ? bankerInfoDiv.querySelector('.amount--188f7').textContent.trim() : null;
+          const bankerPlayers = bankerInfoDiv.querySelector('.players--ad032') ? bankerInfoDiv.querySelector('.players--ad032').textContent.trim() : null;
+          const bankerPercentage = bankerInfoDiv.querySelector('.svgPercentIndicator--f0e76 .value--2f068') ? bankerInfoDiv.querySelector('.svgPercentIndicator--f0e76 .value--2f068').textContent.trim() : null;
+          const bankerCoefficient = bankerInfoDiv.querySelector('.coefficient--f825f') ? bankerInfoDiv.querySelector('.coefficient--f825f').textContent.trim() : null;
+          const bankerName = bankerInfoDiv.querySelector('.name--be392') ? bankerInfoDiv.querySelector('.name--be392').textContent.trim() : 'BANKER';
+          return { bankerAmount, bankerPlayers, bankerPercentage, bankerCoefficient, bankerName };
+        }
+        return null;
+      `;
 
       return await driver.executeScript(script);
     };
@@ -190,23 +197,23 @@ async function monitorPercentages() {
 
     const checkWinningResult = async (driver) => {
       const script = `
-    const playerWinningDiv = document.querySelector('.winning--2bea3.player--a0c1a');
-    const bankerWinningDiv = document.querySelector('.winning--2bea3.banker--f4570');
-    const tieDiv = document.querySelector('.winning--2bea3.tie--1ae4b');
-    let result = 'none';
-    if (playerWinningDiv) {
-      result = 'player';
-    } else if (bankerWinningDiv) {
-      result = 'banker';
-    }else if (tieDiv){
-      result ='tie';
-    }
-
-    return result;
-  `;
-
+        const playerWinningDiv = document.querySelector('[data-role="game-result-player-wins"]');
+        const bankerWinningDiv = document.querySelector('[data-role="game-result-banker-wins"]'); // Update this selector based on the actual data-role for banker wins if it's different
+        const tieDiv = document.querySelector('[data-role="game-result-tie"]'); // Update this selector based on the actual data-role for tie if it's different
+        let result = 'none';
+        if (playerWinningDiv) {
+          result = 'player';
+        } else if (bankerWinningDiv) {
+          result = 'banker';
+        } else if (tieDiv) {
+          result = 'tie';
+        }
+    
+        return result;
+      `;
+    
       const currentWinner = await driver.executeScript(script);
-
+    
       // Check if the result has changed since the last check
       if (currentWinner !== lastWinner) {
         // Update the last winner to the current winner
@@ -214,10 +221,11 @@ async function monitorPercentages() {
         // Return the new winner
         return currentWinner;
       }
-
+    
       // If the result hasn't changed, return 'none' to indicate no update
       return "none";
     };
+    
     const checkAndClickPlayButton = async (driver) => {
       const script = `
         const inactivityContainer = document.querySelector('[data-role="inactivity-message-container"]');
