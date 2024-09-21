@@ -25,3 +25,7 @@
    ```bash
    node gamblerbot
   bash```
+
+
+
+  https://www.xda-developers.com/how-install-chrome-ubuntu/

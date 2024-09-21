@@ -13,10 +13,10 @@ cloudinary.config({
 });
 async function monitorPercentages() {
   let options = new chrome.Options();
-   options.addArguments("--headless"); // Running in headless mode
-   options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
-  options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
-   options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
+  //  options.addArguments("--headless"); // Running in headless mode
+  //  options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
+  // options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
+  //  options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
 
   let driver = await new Builder()
     .forBrowser("chrome")
@@ -51,6 +51,9 @@ async function monitorPercentages() {
     const loginSubmitButton = By.css("button.red.submit");
     await driver.wait(until.elementLocated(loginSubmitButton), 10000);
     await driver.findElement(loginSubmitButton).click();
+    await sendMessage(
+      "Attempting Login"
+    );
     console.log("Attempting Login");
     // Wait for successful login by checking for a logout button, profile link, or similar element
     const logoutButton = By.css(".wallet-dropdown"); // Replace with the actual selector for the logout button or profile link
@@ -76,6 +79,7 @@ async function monitorPercentages() {
     // Find the iframe and switch to it
     const iframe = await iframeContainer.findElement(iframeLocator);
     await driver.switchTo().frame(iframe);
+    
     console.log("first iferame switched");
     // Now that we've switched to the iframe, check for the presence of an element with the class `.games-container`
     const gamesContainer = By.css(".games-container");
@@ -315,15 +319,11 @@ async function monitorPercentages() {
         checkAndClickOkButton(driver).then(async (clicked) => {
           if (clicked) {
             console.log("The OK button was found and clicked.");
-            await driver.wait(
-              until.elementLocated(By.css('[data-role="button-ok"]')),
-              5000
+            await sendMessage(
+              "The OK button was found and clicked"
             );
-            const okButton = await driver.findElement(
-              By.css('[data-role="button-ok"]')
-            );
-            await driver.sleep(1000); // Wait for 1 second
-            await okButton.click();
+           
+            
           }
         });
         checkAndClickFooter(driver);
