@@ -5,6 +5,7 @@ const chrome = require("selenium-webdriver/chrome");
 const cloudinary = require("cloudinary").v2;
 const email = process.env.EMAIL;
 const password = process.env.PASSWORD;
+const pm2 = require("pm2");
 
 cloudinary.config({
   cloud_name: "dl0dnzxur",
@@ -17,7 +18,7 @@ async function initializeDriver() {
   // Add Chrome options as needed
   options.addArguments("--headless"); // Running in headless mode
   options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
- options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
+  options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
   options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
   let driver = await new Builder()
     .forBrowser("chrome")
@@ -609,7 +610,25 @@ async function restartProcess(driver) {
       { folder: "selenium_screenshots" },
       function (error, result) {
         if (error) console.error("Upload to Cloudinary failed:", error);
-        else console.log("Screenshot uploaded successfully. URL:", result.url);
+        else {
+          console.log("Screenshot uploaded successfully. URL:", result.url);
+          pm2.connect(function (err) {
+            if (err) {
+              console.error(err);
+              process.exit(2);
+            }
+
+            // Restart a specific process by its name or id
+            pm2.restart("newGambler", function (err) {
+              pm2.disconnect(); // Disconnects from PM2
+              if (err) {
+                console.error("PM2 restart failed:", err);
+              } else {
+                console.log("PM2 process restarted successfully.");
+              }
+            });
+          });
+        }
       }
     );
 
