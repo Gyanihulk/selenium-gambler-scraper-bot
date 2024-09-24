@@ -98,7 +98,7 @@ async function findCountdownDiv(driver, timeout) {
   const bettingContainer = By.css(
     "div.gradient--112b5.external--6539c.betting--ae3ee.whiteTheme--2f223"
   );
-  await driver.wait(until.elementLocated(bettingContainer), 15000);
+  await driver.wait(until.elementLocated(bettingContainer), 25000);
   const containerElement = await driver.findElement(bettingContainer);
   // If countdownDiv is found, return it immediately
   if (containerElement) {
@@ -215,7 +215,7 @@ async function startMonitoring(driver) {
     return new Date().toLocaleTimeString(); // You can adjust the format as needed
   };
 
-  let lastWinner = null;
+ 
 
   const checkWinningResult = async (driver) => {
     const script = `
@@ -287,13 +287,15 @@ async function startMonitoring(driver) {
         `;
     return await driver.executeScript(script);
   };
-
+  let highLowCounter = 1;
+  let lastGameWinningResult = null;
+  let lastWinner = null;
   let startMessageSent = false;
   let endMessageSent = false;
   let resultShown = false;
   let countdownStarted = false;
   let startTime;
-
+  let tieHandled = false;
   let lastBankerBetAmount = 0;
   let lastPlayerBetAmount = 0;
   let lastBankerPopulation = 0;
@@ -334,23 +336,29 @@ async function startMonitoring(driver) {
           console.log("Player wins", playerDiceResults);
           currentGameResult =
             lastPlayerBetAmount > lastBankerBetAmount ? "High" : "Low";
-
+            if (lastGameResult == currentGameResult) {
+              counter++;
+            } else {
+              counter = 1;
+            }
+            if (winningResult == lastGameWinningResult) {
+              highLowCounter++;
+            } else {
+              highLowCounter = 1;
+            }
           if (
             lastPlayerPopulation > lastBankerPopulation &&
             lastPlayerBetAmount < lastBankerBetAmount
           ) {
             lowBetHighPopulationCounter++;
-            message += `${currentGameResult} Player ${counter} - Low Bet by High Pop`;
+            message += `${currentGameResult} ${counter}  Player ${highLowCounter} - Low Bet by High Pop`;
           } else {
-            message += `${currentGameResult} Player ${counter}`;
+            message += `${currentGameResult} ${counter}  Player ${highLowCounter}`;
           }
-          if (lastGameResult == currentGameResult) {
-            counter++;
-          } else {
-            counter = 1;
-          }
+        
           console.log(lastGameResult, currentGameResult);
           lastGameResult = currentGameResult;
+          lastGameWinningResult=winningResult
         } else if (winningResult === "banker") {
           console.log("Banker wins", bankerDiceResults);
           currentGameResult =
@@ -360,19 +368,27 @@ async function startMonitoring(driver) {
           } else {
             counter = 1;
           }
+          if (winningResult == lastGameWinningResult) {
+            highLowCounter++;
+          } else {
+            highLowCounter = 1;
+          }
+
           if (
             lastBankerPopulation > lastPlayerPopulation &&
             lastBankerBetAmount < lastPlayerBetAmount
           ) {
             lowBetHighPopulationCounter++;
-            message += `${currentGameResult} Banker ${counter} - Low Bet by High Pop`;
+            message += `${currentGameResult} ${counter}  Banker ${highLowCounter} - Low Bet by High Pop`;
           } else {
-            message += `${currentGameResult} Banker ${counter}`;
+            message += `${currentGameResult} ${counter} Banker ${highLowCounter} `;
           }
+          
           console.log(lastGameResult, currentGameResult);
           lastGameResult = currentGameResult;
+          lastGameWinningResult=winningResult
         } else if (
-          winningResult === "tie" &&
+          // winningResult === "tie" &&
           playerDiceResults &&
           bankerDiceResults &&
           playerDiceResults?.totalResult === bankerDiceResults?.totalResult &&
@@ -381,7 +397,8 @@ async function startMonitoring(driver) {
         ) {
           if (bankerDiceResults?.totalResult) {
             counter++;
-            message += lastGameResult + " " + counter;
+            highLowCounter++;
+            // message += lastGameResult + " " + counter;
             message += " Tie ";
             switch (bankerDiceResults.totalResult) {
               case 2:
@@ -409,6 +426,7 @@ async function startMonitoring(driver) {
                 message += bankerDiceResults.totalResult;
             }
           }
+          tieHandled = true;
         }
 
         // if(lastGameResult && currentGameResult){
@@ -485,6 +503,7 @@ async function startMonitoring(driver) {
         startMessageSent = false;
         endMessageSent = false;
         resultShown = false;
+        tieHandled = false;
       }
     } catch (err) {
       console.log(err);
@@ -652,7 +671,25 @@ async function monitorPercentages() {
       { folder: "selenium_screenshots" },
       function (error, result) {
         if (error) console.error("Upload to Cloudinary failed:", error);
-        else console.log("Screenshot uploaded successfully. URL:", result.url);
+        else {
+          console.log("Screenshot uploaded successfully. URL:", result.url);
+          pm2.connect(function (err) {
+            if (err) {
+              console.error(err);
+              process.exit(2);
+            }
+
+            // Restart a specific process by its name or id
+            pm2.restart("newGambler", function (err) {
+              pm2.disconnect(); // Disconnects from PM2
+              if (err) {
+                console.error("PM2 restart failed:", err);
+              } else {
+                console.log("PM2 process restarted successfully.");
+              }
+            });
+          });
+        }
       }
     );
 
