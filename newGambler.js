@@ -16,10 +16,10 @@ cloudinary.config({
 async function initializeDriver() {
   let options = new chrome.Options();
   // Add Chrome options as needed
-  // options.addArguments("--headless"); // Running in headless mode
-  // options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
-  // options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
-  // options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
+  options.addArguments("--headless"); // Running in headless mode
+  options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
+  options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
+  options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
   let driver = await new Builder()
     .forBrowser("chrome")
     .setChromeOptions(options)
