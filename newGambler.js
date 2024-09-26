@@ -407,7 +407,7 @@ async function startMonitoring(driver) {
           !bankerDiceResults?.diceResults?.includes(null) &&
           !playerDiceResults?.diceResults?.includes(null) &&
           !tieHandled &&
-          !tieTimeoutActive
+          !tieTimeoutActive && lastGameResult!=undefined
         ) {
           setTimeout(() => {
             tieTimeoutActive = false; // Allow tie handling after timeout
