@@ -215,13 +215,11 @@ async function startMonitoring(driver) {
     return new Date().toLocaleTimeString(); // You can adjust the format as needed
   };
 
- 
-
   const checkWinningResult = async (driver) => {
     const script = `
           const playerWinningDiv = document.querySelector('[data-role="game-result-player-wins"]');
           const bankerWinningDiv = document.querySelector('[data-role="game-result-banker-wins"]'); // Update this selector based on the actual data-role for banker wins if it's different
-          const tieDiv = document.querySelector('[data-role="game-result-tie"]'); // Update this selector based on the actual data-role for tie if it's different
+          const tieDiv = document.querySelector('[data-role="game-result-tie-wins"]'); // Update this selector based on the actual data-role for tie if it's different
           let result = 'none';
           if (playerWinningDiv) {
             result = 'player';
@@ -301,6 +299,7 @@ async function startMonitoring(driver) {
   let lastBankerPopulation = 0;
   let lastPlayerPopulation = 0;
   let lowBetHighPopulationCounter = 0;
+  let highBetLowPopulationCounter = 0;
   let counter = 1;
   let lastGameResult;
   let tieTimeoutActive = false;
@@ -337,29 +336,35 @@ async function startMonitoring(driver) {
           console.log("Player wins", playerDiceResults);
           currentGameResult =
             lastPlayerBetAmount > lastBankerBetAmount ? "High" : "Low";
-            if (lastGameResult == currentGameResult) {
-              counter++;
-            } else {
-              counter = 1;
-            }
-            if (winningResult == lastGameWinningResult) {
-              highLowCounter++;
-            } else {
-              highLowCounter = 1;
-            }
+          if (lastGameResult == currentGameResult) {
+            counter++;
+          } else {
+            counter = 1;
+          }
+          if (winningResult == lastGameWinningResult) {
+            highLowCounter++;
+          } else {
+            highLowCounter = 1;
+          }
           if (
             lastPlayerPopulation > lastBankerPopulation &&
             lastPlayerBetAmount < lastBankerBetAmount
           ) {
             lowBetHighPopulationCounter++;
             message += `${currentGameResult} ${counter}  Player ${highLowCounter} - Low Bet by High Pop`;
+          }else if (
+            lastPlayerPopulation < lastBankerPopulation &&
+            lastPlayerBetAmount > lastBankerBetAmount
+          ) {
+            highBetLowPopulationCounter++;
+            message += `${currentGameResult} ${counter}  Player ${highLowCounter} - High bet by low pop`;
           } else {
             message += `${currentGameResult} ${counter}  Player ${highLowCounter}`;
           }
-        
+
           console.log(lastGameResult, currentGameResult);
           lastGameResult = currentGameResult;
-          lastGameWinningResult=winningResult
+          lastGameWinningResult = winningResult;
         } else if (winningResult === "banker") {
           console.log("Banker wins", bankerDiceResults);
           currentGameResult =
@@ -381,33 +386,43 @@ async function startMonitoring(driver) {
           ) {
             lowBetHighPopulationCounter++;
             message += `${currentGameResult} ${counter}  Banker ${highLowCounter} - Low Bet by High Pop`;
+          } else if (
+            lastBankerPopulation < lastPlayerPopulation &&
+            lastBankerBetAmount > lastPlayerBetAmount
+          ) {
+            highBetLowPopulationCounter++;
+            message += `${currentGameResult} ${counter}  Banker ${highLowCounter} - High bet by low pop`;
           } else {
             message += `${currentGameResult} ${counter} Banker ${highLowCounter} `;
           }
-          
+
           console.log(lastGameResult, currentGameResult);
           lastGameResult = currentGameResult;
-          lastGameWinningResult=winningResult
+          lastGameWinningResult = winningResult;
         } else if (
-          // winningResult === "tie" &&
+          winningResult === "tie" &&
           playerDiceResults &&
           bankerDiceResults &&
           playerDiceResults?.totalResult === bankerDiceResults?.totalResult &&
           !bankerDiceResults?.diceResults?.includes(null) &&
-          !playerDiceResults?.diceResults?.includes(null) && !tieHandled && !tieTimeoutActive
+          !playerDiceResults?.diceResults?.includes(null) &&
+          !tieHandled &&
+          !tieTimeoutActive
         ) {
-          tieHandled = true;
-          tieTimeoutActive = true; 
           setTimeout(() => {
-            tieTimeoutActive = false;  // Allow tie handling after timeout
-            tieHandled = false;  // Reset tieHandled after the timeout
-          }, 5000); 
+            tieTimeoutActive = false; // Allow tie handling after timeout
+            tieHandled = false; // Reset tieHandled after the timeout
+          }, 5000);
 
-          if (bankerDiceResults?.totalResult) {
+          if (
+            bankerDiceResults?.totalResult &&
+            !tieHandled &&
+            !tieTimeoutActive
+          ) {
             counter++;
             highLowCounter++;
             // message += lastGameResult + " " + counter;
-            message += lastGameResult + " "+ highLowCounter +" Tie ";
+            message += lastGameResult + " " + highLowCounter + " Tie ";
             switch (bankerDiceResults.totalResult) {
               case 2:
               case 12:
@@ -434,7 +449,8 @@ async function startMonitoring(driver) {
                 message += bankerDiceResults.totalResult;
             }
           }
-          
+          tieHandled = true;
+          tieTimeoutActive = true;
         }
 
         // if(lastGameResult && currentGameResult){
