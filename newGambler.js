@@ -396,6 +396,13 @@ async function startMonitoring(driver) {
           !bankerDiceResults?.diceResults?.includes(null) &&
           !playerDiceResults?.diceResults?.includes(null) && !tieHandled && !tieTimeoutActive
         ) {
+          tieHandled = true;
+          tieTimeoutActive = true; 
+          setTimeout(() => {
+            tieTimeoutActive = false;  // Allow tie handling after timeout
+            tieHandled = false;  // Reset tieHandled after the timeout
+          }, 5000); 
+          
           if (bankerDiceResults?.totalResult) {
             counter++;
             highLowCounter++;
@@ -427,12 +434,7 @@ async function startMonitoring(driver) {
                 message += bankerDiceResults.totalResult;
             }
           }
-          tieHandled = true;
-          tieTimeoutActive = true; 
-          setTimeout(() => {
-            tieTimeoutActive = false;  // Allow tie handling after timeout
-            tieHandled = false;  // Reset tieHandled after the timeout
-          }, 5000); 
+          
         }
 
         // if(lastGameResult && currentGameResult){
