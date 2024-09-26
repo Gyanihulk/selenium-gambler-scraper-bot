@@ -419,8 +419,7 @@ async function startMonitoring(driver) {
             !tieHandled &&
             !tieTimeoutActive
           ) {
-            counter++;
-            highLowCounter++;
+       
             // message += lastGameResult + " " + counter;
             message += lastGameResult + " " + highLowCounter + " Tie ";
             switch (bankerDiceResults.totalResult) {
@@ -449,6 +448,8 @@ async function startMonitoring(driver) {
                 message += bankerDiceResults.totalResult;
             }
           }
+          counter++;
+          highLowCounter++;
           tieHandled = true;
           tieTimeoutActive = true;
         }
