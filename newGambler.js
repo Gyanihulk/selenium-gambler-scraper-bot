@@ -402,7 +402,7 @@ async function startMonitoring(driver) {
             tieTimeoutActive = false;  // Allow tie handling after timeout
             tieHandled = false;  // Reset tieHandled after the timeout
           }, 5000); 
-          
+
           if (bankerDiceResults?.totalResult) {
             counter++;
             highLowCounter++;
@@ -516,7 +516,7 @@ async function startMonitoring(driver) {
     } catch (err) {
       console.log(err);
     }
-  }, 500);
+  }, 800);
 
   async function preventInactivityClick(driver) {
     const script = `
