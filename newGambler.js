@@ -399,7 +399,7 @@ async function startMonitoring(driver) {
             counter++;
             highLowCounter++;
             // message += lastGameResult + " " + counter;
-            message += currentGameResult + " "+ highLowCounter +" Tie ";
+            message += lastGameResult + " "+ highLowCounter +" Tie ";
             switch (bankerDiceResults.totalResult) {
               case 2:
               case 12:
