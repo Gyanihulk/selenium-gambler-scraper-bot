@@ -303,6 +303,7 @@ async function startMonitoring(driver) {
   let lowBetHighPopulationCounter = 0;
   let counter = 1;
   let lastGameResult;
+  let tieTimeoutActive = false;
   setInterval(async () => {
     try {
       const hasPulseClass = await checkPulseClass();
@@ -393,7 +394,7 @@ async function startMonitoring(driver) {
           bankerDiceResults &&
           playerDiceResults?.totalResult === bankerDiceResults?.totalResult &&
           !bankerDiceResults?.diceResults?.includes(null) &&
-          !playerDiceResults?.diceResults?.includes(null) && !tieHandled
+          !playerDiceResults?.diceResults?.includes(null) && !tieHandled && !tieTimeoutActive
         ) {
           if (bankerDiceResults?.totalResult) {
             counter++;
@@ -427,6 +428,11 @@ async function startMonitoring(driver) {
             }
           }
           tieHandled = true;
+          tieTimeoutActive = true; 
+          setTimeout(() => {
+            tieTimeoutActive = false;  // Allow tie handling after timeout
+            tieHandled = false;  // Reset tieHandled after the timeout
+          }, 5000); 
         }
 
         // if(lastGameResult && currentGameResult){
