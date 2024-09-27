@@ -352,7 +352,7 @@ async function startMonitoring(driver) {
           ) {
             lowBetHighPopulationCounter++;
             message += `${currentGameResult} ${counter}  Player ${highLowCounter} - Low Bet by High Pop`;
-          }else if (
+          } else if (
             lastPlayerPopulation < lastBankerPopulation &&
             lastPlayerBetAmount > lastBankerBetAmount
           ) {
@@ -407,7 +407,8 @@ async function startMonitoring(driver) {
           !bankerDiceResults?.diceResults?.includes(null) &&
           !playerDiceResults?.diceResults?.includes(null) &&
           !tieHandled &&
-          !tieTimeoutActive && lastGameResult!=undefined
+          !tieTimeoutActive &&
+          lastGameResult != undefined
         ) {
           setTimeout(() => {
             tieTimeoutActive = false; // Allow tie handling after timeout
@@ -419,9 +420,11 @@ async function startMonitoring(driver) {
             !tieHandled &&
             !tieTimeoutActive
           ) {
-       
+            counter++;
+            highLowCounter++;
             // message += lastGameResult + " " + counter;
-            message += lastGameResult + " " + highLowCounter + " Tie ";
+            message += lastGameResult + " " + counter + " Tie ";
+       
             switch (bankerDiceResults.totalResult) {
               case 2:
               case 12:
@@ -448,8 +451,8 @@ async function startMonitoring(driver) {
                 message += bankerDiceResults.totalResult;
             }
           }
-          counter++;
-          highLowCounter++;
+         
+      
           tieHandled = true;
           tieTimeoutActive = true;
         }
