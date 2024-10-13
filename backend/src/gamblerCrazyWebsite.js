@@ -26,10 +26,10 @@ try {
     let options = new chrome.Options();
     if (process.env.ENV == "PROD") {
       // Add Chrome options as needed
-      // options.addArguments("--headless"); // Running in headless mode
-      // options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
-      // options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
-      // options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
+      options.addArguments("--headless"); // Running in headless mode
+      options.addArguments("--disable-gpu"); // Disabling GPU hardware acceleration
+      options.addArguments("--no-sandbox"); // Disabling the sandbox for running untrusted code
+      options.addArguments("--disable-dev-shm-usage"); // Overcome limited resource problems
     }
 
     let driver = await new Builder()
