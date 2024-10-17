@@ -2,8 +2,9 @@ require("dotenv").config();
 const express = require("express");
 const redis = require("redis");
 const mongoose = require("mongoose");
-const { monitorPercentages } = require("./gamblerCrazyWebsite");
+const { monitorPercentagesCrazy } = require("./gamblerCrazyWebsite");
 const { cleanRedisData } = require("./config/redisConfig");
+const { monitorPercentages } = require("./newGambler");
 
 
 const app = express();
@@ -50,6 +51,7 @@ app.listen(3000, () => {
     await cleanRedisData();
     console.log("Cleaned up Redis data for game results and bets.");
   })();
+  monitorPercentagesCrazy()
   monitorPercentages()
 });
 

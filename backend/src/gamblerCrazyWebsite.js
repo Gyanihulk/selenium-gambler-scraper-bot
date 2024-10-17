@@ -186,7 +186,7 @@ try {
     }
   }
 
-  async function monitorPercentages() {
+  async function monitorPercentagesCrazy() {
     // Promisify Redis client methods for async/await
     // const lpushAsync = promisify(client.lpush).bind(client);
 
@@ -231,7 +231,7 @@ try {
   }
 
   module.exports = {
-    monitorPercentages,
+    monitorPercentagesCrazy,
   };
 } catch (error) {
   console.log(error);

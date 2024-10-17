@@ -6,15 +6,15 @@ const bot = new TelegramBot(token, { polling: true });
 bot.getMe().then((botInfo) => {
   console.log('Bot username:', botInfo.username);
 });
-// bot.on("message", (msg) => {
-//   console.log("Your chat ID:", msg.chat.id, msg);
-//   // Stop the bot after capturing the chat ID
-//   // sendMessage(message,adamya)
+bot.on("message", (msg) => {
+  console.log("Your chat ID:", msg.chat.id, msg);
+  // Stop the bot after capturing the chat ID
+  // sendMessage(message,adamya)
 
-//   bot.stopPolling();
-// });
+  bot.stopPolling();
+});
 
-chatId= process.env.CHAT_ID
+
 
 let lastMessageTime = 0;
 let lastSentMessage = "";
